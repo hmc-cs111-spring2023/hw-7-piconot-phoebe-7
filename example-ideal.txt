@@ -1,0 +1,27 @@
+move left:
+face west
+while path is clear
+	run straight
+
+move up:
+face north
+while path is clear
+	go straight
+
+move down:
+face south
+while path is clear
+	go straight
+step left
+
+move right:
+face north
+while path is clear
+    go straight
+step right
+
+repeat until finish:
+move left
+move up
+move down
+move right by one step

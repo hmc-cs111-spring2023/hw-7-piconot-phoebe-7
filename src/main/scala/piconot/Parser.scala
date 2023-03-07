@@ -167,7 +167,7 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
                         lastSurroundingString = surroundingsAsString
                     }
 
-                    case _ => throw Exception
+                    case _ => Failure("conflicting surroundings and movement")
                 })
 
                 rules
@@ -184,6 +184,7 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
         ^^ {
             case queryDir ~ status ~ newDir => (queryDir, status, newDir, None)
             case queryMove ~ newState => (queryMove, "", "", newState)
+            case _ => Failure("unparsable while or step clause")
         }
 
     
