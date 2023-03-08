@@ -25,6 +25,8 @@ describe_ why _you made the change._
 - I forgot about X as a possibility for MoveDirections. Stay is meant to be the equivalent of X, while step is N/S/E/W depending on the associated direction of current state.
 5. "and" to chain step/stay with a state change
 - Similar to #1, it was easier to make state changes along immediately with a step when explicitly given.
+6. Remove the colon from function definitions
+- 
 
 
 **On a scale of 1–10 (where 10 is "a lot"), how much did you have to change your syntax?**

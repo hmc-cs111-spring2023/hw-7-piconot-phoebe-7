@@ -78,7 +78,7 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
     def apply(s: String): ParseResult[List[Rule]] = parseAll(moveLogic, s)
 
     def moveLogic: Parser[List[Rule]] = 
-        state ~ rep(clause) ~ state ^^ {
+        (state <~ ":") ~ rep(clause | otherClause) ~ state ^^ {
             case startState ~ terms ~ finalState => {
                 // imperative way of storing stuff for generating rules
                 var currState = startState
