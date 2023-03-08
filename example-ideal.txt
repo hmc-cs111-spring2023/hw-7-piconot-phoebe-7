@@ -1,7 +1,7 @@
 move left:
 face west
 while path is clear
-	run straight
+	go straight
 
 move up:
 face north

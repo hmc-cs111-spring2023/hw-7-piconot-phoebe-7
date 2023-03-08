@@ -28,7 +28,7 @@ describe_ why _you made the change._
 
 
 **On a scale of 1–10 (where 10 is "a lot"), how much did you have to change your syntax?**
-4 - it still looks more like human instruction than Picobot code.
+4 - It still looks more like human instruction than Picobot code.
 
 **On a scale of 1–10 (where 10 is "very difficult"), how difficult was it to map your syntax to the provided API?**
 8 - There were no 1-to-1 mappings for words in my syntax to the API for Surroundings, MoveDirection, and RelativeDescription. The need for the single mention of state to be parsed together with many while/step clauses meant Rules cannot be generated individually.

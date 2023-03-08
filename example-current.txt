@@ -1,0 +1,17 @@
+move left
+while path is clear
+	go straight
+move up
+
+move up
+while path is clear
+	go straight
+move down
+
+move down
+while path is clear
+	go straight
+move right
+
+move right
+stay and move up

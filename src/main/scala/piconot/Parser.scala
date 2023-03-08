@@ -1,9 +1,9 @@
 package piconot.external
 
+import scala.collection.mutable.ListBuffer
 import scala.util.parsing.combinator._
 import picolib.semantics._
 import java.lang.module.ModuleDescriptor.Opens
-
 
 
 object PiconotParser extends JavaTokenParsers with PackratParsers {
@@ -44,7 +44,7 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
 
             val result = dir match {
                 case North => charChanged ++ surr.tail
-                case East => surr.charAt(0) ++ charChanged ++ surr.substring(2)
+                case East => surr.charAt(0).toString ++ charChanged ++ surr.substring(2)
                 case South => surr.substring(0, 2) ++ charChanged ++ surr.substring(3)
                 case West => surr.take(3) ++ charChanged
             }
@@ -57,21 +57,25 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
             c match {
                 case 'x' => Open
                 case '*' => Anything
-                _ => Blocked 
+                case 'N' | 'S' | 'E' | 'W' => Blocked 
             }
 
 
         Surroundings(
-            converRelativeDescription(surr(0)),
-            converRelativeDescription(surr(1)),
-            converRelativeDescription(surr(2)),
-            converRelativeDescription(surr(3))
+            convertRelativeDescription(surr.charAt(0)),
+            convertRelativeDescription(surr.charAt(1)),
+            convertRelativeDescription(surr.charAt(2)),
+            convertRelativeDescription(surr.charAt(3))
         )
     }
 
     // ############################################################
     // Parsers
     // ############################################################
+    // for parsing comments
+    override protected val whiteSpace = """(\s|#.*)+""".r
+    
+    def apply(s: String): ParseResult[List[Rule]] = parseAll(moveLogic, s)
 
     def moveLogic: Parser[List[Rule]] = 
         state ~ rep(clause) ~ state ^^ {
@@ -79,46 +83,50 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
                 // imperative way of storing stuff for generating rules
                 var currState = startState
                 var lastSurroundingString = "****"
-                var rules = List.empty[Rule]
+                var rules = ListBuffer.empty[Rule]
 
                 // terms are while (queryDir) is (status) go (newDir) or
                 // (queryMove) and move (newState) as 4-tuple
                 terms.foreach(t => t match {
                     // ######################################
                     // (queryDir, status, newDir, None) cases
-                    case (queryDir, status, newDir, None) => ""
-                    case ("path", "clear", "straight", None) => {
-                        val moveDir = stateMoveDirectionMap(currState)
+                    // case (queryDir, status, newDir, State("dummy")) => ""
+                    case ("path", "clear", "straight", State("dummy")) => {
+                        val movDir = stateMoveDirectionMap(currState)
                         val surroundingsAsString = getSurroundingsAsString(
-                            moveDir, 
+                            movDir, 
                             "clear", 
                             lastSurroundingString)
                 
                         rules.append(Rule(
                             currState,
                             convertSurroundingString(surroundingsAsString),
-                            moveDir,
+                            movDir,
                             currState
                         ))
 
                         lastSurroundingString = surroundingsAsString
                     }
-                    case ("right", "clear", "right", None) => {
-                        val nextState = State((x.toInt)+1)
+                    case ("right", "clear", "right", State("dummy")) => {
+                        val extractStateValue = currState match {
+                            case State(x) => x
+                            case _ => "-1" // println("unexpected state value") ERROR
+                        }
+                        val nextState = State(((extractStateValue.toInt)+1).toString)
                         val movDir = stateMoveDirectionMap(nextState)
                         val surroundingsAsString = getSurroundingsAsString(
-                            moveDir, 
+                            movDir, 
                             "clear", 
                             lastSurroundingString)
                 
                         rules.append(Rule(
                             currState,
                             convertSurroundingString(surroundingsAsString),
-                            moveDir,
+                            movDir,
                             nextState
                         ))
 
-                        currState = newState
+                        currState = nextState
                         lastSurroundingString = surroundingsAsString
                     }
 
@@ -167,29 +175,31 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
                         lastSurroundingString = surroundingsAsString
                     }
 
-                    case _ => Failure("conflicting surroundings and movement")
+                    case _ => println("conflicting surroundings and movement") // ERROR
                 })
 
-                rules
+                rules.to(List)
             }
         }
 
     // intermediate parser to cut syntactic sugar and get bits to match Picobot library
     def clause: Parser[(String, String, String, State)] =
-        ("while " <~ ("path" | "right") ~> " is " ~ ("clear" | "blocked")
-        ~> "go " ~ ("straight" | "right")) // while (queryDir) is (status) go (newDir)
-
-        | (("step" | "stay") ~> " and " ~ state) // (queryMove) and move (newState)
-
-        ^^ {
-            case queryDir ~ status ~ newDir => (queryDir, status, newDir, None)
+        // TODO: get rid of "blocked" - because we immediately know something is blocked
+        // by the time we parse the next while/go clause
+        // and surroundingsAsString should handle this change from x to NEWS
+        "while " ~> (("path" | "right") <~ "is ") ~ (("clear" | "blocked")
+        <~ "go ") ~ ("straight" | "right") ^^ {
+            case queryDir ~ status ~ newDir => (queryDir, status, newDir, State("dummy"))
+        }
+    
+    def otherClause: Parser[(String, String, String, State)] =
+        (("step" | "stay") <~ " and ") ~ state ^^ {
             case queryMove ~ newState => (queryMove, "", "", newState)
-            case _ => Failure("unparsable while or step clause")
         }
 
     
     def state: Parser[State] =
-        "move " <~ ("left" | "right" | "up" | "down") ^^ {
+        "move " ~> (("left" | "right" | "up" | "down")) ^^ {
             case "up" => State("0") // north
             case "right" => State("1") // east
             case "down" => State("2") // south
@@ -197,7 +207,7 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
         }
 
 
-        // (string representing surroundings ex: xE**, moveDirection, newstate)
+    // Some other ways of parsing I tried...
     // def startMoveLogic: Parser[(String, MoveDirection, State)] = 
     //     state ~ // "move left/right/up/down"
 
