@@ -40,7 +40,6 @@ object PiconotParser extends JavaTokenParsers with PackratParsers {
                 case "clear" => "x"
                 case _ => "*"
             }
-            // TODO: x's in input surr converted to N/E/W/S
 
             val result = dir match {
                 case North => charChanged ++ surr.tail
